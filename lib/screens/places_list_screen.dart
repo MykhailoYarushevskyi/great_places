@@ -18,6 +18,7 @@ enum PopupMenuOptions {
 // TODO add in menu or Drawer: Save in Preferences choise for list order (emum SequencePlacesList),
 // and <_filterPlacesListBy> NONE, FAVORITE, TITLE, LOCATION (enum FilterPlacesListBy)
 
+/// Provides showing the list of the places
 class PlacesListScreen extends StatefulWidget {
   static const String MAIN_TAG = '## PlacesListScreen';
   @override
@@ -40,15 +41,11 @@ class _PlacesListScreenState extends State<PlacesListScreen> {
                 switch (option) {
                   case PopupMenuOptions.ShowFavorites:
                     {
-                      print(
-                          '## PlacesListScreen PopupMenuButton then option: $option');
                       _filterPlacesListBy = FilterPlacesListBy.FAVORITE;
                       break;
                     }
                   case PopupMenuOptions.ShowAll:
                     {
-                      print(
-                          '## PlacesListScreen PopupMenuButton else option: $option');
                       _filterPlacesListBy = FilterPlacesListBy.NONE;
                       break;
                     }
@@ -92,7 +89,7 @@ class _PlacesListScreenState extends State<PlacesListScreen> {
                 child: Text('All places'),
               ),
               PopupMenuDivider(height: 16.0),
-              PopupMenuItem(child: Text('--- List Order ---')),
+              PopupMenuItem(child: Text('--- Sort List ---')),
               PopupMenuItem(
                 value: PopupMenuOptions.SequenceEarlierAhead,
                 child: Text('Earlier Ahead'),
@@ -125,7 +122,7 @@ class _PlacesListScreenState extends State<PlacesListScreen> {
         future:
             Provider.of<UserPlaces>(context, listen: false).fetchAndSetPlaces(
           filterBy: _filterPlacesListBy,
-          listOrder: _sequencePlacesList,
+          listSequence: _sequencePlacesList,
         ),
         builder: (ctx, snapshot) => snapshot.connectionState ==
                 ConnectionState.waiting

@@ -11,6 +11,8 @@ import '../helpers/location_helper.dart';
 import '../screens/map_screen.dart';
 import '../models/place.dart';
 
+/// Provides obtaining the user location and the static map image URL
+/// according to the user location
 class LocationInput extends StatefulWidget {
   final Function onSelectLocation;
   LocationInput(this.onSelectLocation);
@@ -22,14 +24,15 @@ class LocationInput extends StatefulWidget {
 class _StateLocationInput extends State<LocationInput> {
   static const String MAIN_TAG = '## LocationInput';
 
-  String _previewImageUrl;
+  Image _staticPreviewMapImage;
+  String _previewMapImageUrl;
   double _latitude;
   double _longitude;
-  bool _isSelecting = true; // whether select user location on the Map Screen
+  // it shows whether select or not user location on the Map Screen
+  bool _isSelectingLocationOnMap = true;
   bool _isLoading = false;
 
   Widget build(BuildContext context) {
-    // double _widthDevice = MediaQuery.of(context).size.width;
     double _heightPreviewImage = 170.0;
     return Column(
       children: <Widget>[
@@ -46,34 +49,21 @@ class _StateLocationInput extends State<LocationInput> {
                   color: Colors.grey,
                 ),
               ),
-              // child: Stack(
-              //   alignment: AlignmentDirectional.center,
-              //   fit: StackFit.passthrough,
-              //   children: <Widget>[
-              child: _previewImageUrl == null
+              child: _previewMapImageUrl == null
                   ? Text(
                       'Location do not choosed yet!',
                       textAlign: TextAlign.center,
                     )
-                  : _previewImageUrl.startsWith('http')
-                      ? Image.network(_previewImageUrl)
-                      // ? PreviewImage(_previewImageUrl)
+                  : !_isCorrectPreviewImageUrl() &&
+                          _staticPreviewMapImage != null
+                      ? _staticPreviewMapImage
                       // show the dummy image
                       : Image.asset(
                           'assets/images/chris-lawton-duQ1ulzTJbM-unsplash.jpg'),
-              // if (_isLoading)
-              //   Positioned(
-              //     child: CircularProgressIndicator(),
-              //     // height: 80.00
-              //     height: _heightPreviewImage * 0.2,
-              //     width: _heightPreviewImage * 0.2,
-              //   ),
             ),
             if (_isLoading)
               Positioned(
                 child: CircularProgressIndicator(),
-                // height: _heightPreviewImage * 0.2,
-                // width: _heightPreviewImage * 0.2,
               ),
           ],
         ),
@@ -86,11 +76,11 @@ class _StateLocationInput extends State<LocationInput> {
               Text(
                   'Longitude: ${!_isLatLngNull ? _longitude.toStringAsFixed(8) : ''}'),
             ]),
-            FlatButton.icon(
-              onPressed: () => !_isLatLngNull
-                  ? Clipboard.setData(
-                      ClipboardData(text: '$_latitude,$_longitude'),
-                    )
+            TextButton.icon(
+              onPressed: !_isLatLngNull
+                  ? () => Clipboard.setData(
+                        ClipboardData(text: '$_latitude,$_longitude'),
+                      )
                   : null,
               icon: Icon(Icons.copy),
               label: Text('Copy to Clipboard'),
@@ -100,22 +90,20 @@ class _StateLocationInput extends State<LocationInput> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            FlatButton.icon(
+            TextButton.icon(
               icon: Icon(Icons.location_on),
               label: Text(
                 'Current Location',
-                style: TextStyle(),
+                style: TextStyle(color: Theme.of(context).primaryColor),
               ),
-              textColor: Theme.of(context).primaryColor,
-              onPressed: () => _setUpPreviewImage(label: 'A'),
+              onPressed: () => _setUpStaticPreviewMapImage(label: 'A'),
             ),
-            FlatButton.icon(
+            TextButton.icon(
               icon: Icon(Icons.map),
               label: Text(
                 'Select on Map',
-                style: TextStyle(),
+                style: TextStyle(color: Theme.of(context).primaryColor),
               ),
-              textColor: Theme.of(context).primaryColor,
               onPressed: _selectOnMap,
             ),
           ],
@@ -124,37 +112,51 @@ class _StateLocationInput extends State<LocationInput> {
     );
   }
 
+  void _setIsLoading(bool isLoading) {
+    setState(() {
+      _isLoading = isLoading;
+    });
+  }
+
+  bool _isCorrectPreviewImageUrl() => _previewMapImageUrl.startsWith('https');
+
   bool get _isLatLngNull {
     return _latitude == null || _longitude == null;
   }
 
-  Widget getPreviewImage(imageUrl) {
-    setState(() {
-      _isLoading = true;
-    });
-    Image image = Image.network(_previewImageUrl);
-    log('$MAIN_TAG.getPreviewImage image: $image');
-    return image;
+  Future<void> _getstaticPreviewMapImage() async {
+    _setIsLoading(true);
+    try {
+      Image _staticPreviewMapImage = Image.network(_previewMapImageUrl);
+      log('$MAIN_TAG.getPreviewImage _staticPreviewMapImage: $_staticPreviewMapImage');
+    } catch (error) {
+      await _showError(
+        title: 'An error occurred while loading the static map image:',
+        error: error,
+      );
+    } finally {
+      _setIsLoading(false);
+    }
   }
 
-  Future<void> _setUpPreviewImage({String label}) async {
-    setState(() {
-      _isLoading = true;
-    });
-    await _getCurrentUserLocation();
-    await _getLocationPreviewImage(
-      latitudeLocation: _latitude,
-      longitudeLocation: _longitude,
-      label: label,
-    );
-    setState(() {
-      _isLoading = false;
-    });
+  Future<void> _setUpStaticPreviewMapImage({String label}) async {
+    _setIsLoading(true);
+    try {
+      await _getCurrentUserLocation();
+      await _getLocationPreviewMapImageUrl(
+        latitudeLocation: _latitude,
+        longitudeLocation: _longitude,
+        label: label,
+      );
+      await _getstaticPreviewMapImage();
+    } finally {
+      _setIsLoading(false);
+    }
   }
 
   /// getting the current location([_latitude] and [_longitude])
   /// of the user so defining as a location of their device,
-  /// then getting [_previewImageUrl] for showing preview map image
+  /// then getting [_previewMapImageUrl] for showing preview map image
   /// with current user location
   Future<void> _getCurrentUserLocation() async {
     Location location = new Location();
@@ -165,7 +167,6 @@ class _StateLocationInput extends State<LocationInput> {
     print('$MAIN_TAG._getCurrentUserLocation() Entrance');
     try {
       _serviceEnabled = await location.serviceEnabled();
-      // print('$MAIN_TAG._getCurrentUserLocation() _serviceEnabled: $_serviceEnabled');
       if (!_serviceEnabled) {
         _serviceEnabled = await location.requestService();
         if (!_serviceEnabled) {
@@ -173,40 +174,24 @@ class _StateLocationInput extends State<LocationInput> {
         }
       }
       _permissionGranted = await location.hasPermission();
-      // print('$MAIN_TAG._getCurrentUserLocation() _permissionGranted: $_permissionGranted');
       if (_permissionGranted == PermissionStatus.denied) {
         _permissionGranted = await location.requestPermission();
         if (_permissionGranted != PermissionStatus.granted) {
           return;
         }
       }
-      // print('$MAIN_TAG._getCurrentUserLocation() location: $location');
       if (location == null) {
         throw 'Location instance is null';
       }
       _locationData = await location.getLocation();
-      // print('$MAIN_TAG._getCurrentUserLocation() _locationData: $_locationData');
       if (_locationData == null) {
         throw 'LocationData instance is null';
       }
     } catch (error) {
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          actions: [
-            FlatButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Ok'),
-            )
-          ],
-          title: Text('Something go Wrong!'),
-          content: Text(error),
-        ),
-      );
+      await _showError(error: error);
       return;
     }
     setState(() {
-      // print('$MAIN_TAG._getCurrentUserLocation() setState()');
       _latitude = _locationData.latitude;
       _longitude = _locationData.longitude;
       widget.onSelectLocation(
@@ -216,10 +201,10 @@ class _StateLocationInput extends State<LocationInput> {
     });
   }
 
-  /// getting from Google Map server the URL [staticMapImageUrl]
+  /// getting the URL [staticMapImageUrl] where contains at the Google Map server
   /// with center at the [latitudeLocation] and
   /// the [longitudeLocation] what marked with label [label]
-  Future<void> _getLocationPreviewImage({
+  Future<void> _getLocationPreviewMapImageUrl({
     @required double latitudeLocation,
     @required double longitudeLocation,
     String label,
@@ -227,28 +212,16 @@ class _StateLocationInput extends State<LocationInput> {
     try {
       log('$MAIN_TAG.getLocationPreviewImage() Entrance');
       final staticMapImageUrl =
-          await LocationHelper.generateLocationPreviewImage(
+          await LocationHelper.generateLocationPreviewMapImageUrl(
         latitude: latitudeLocation,
         longitude: longitudeLocation,
         label: label,
       );
       setState(() {
-        _previewImageUrl = staticMapImageUrl;
+        _previewMapImageUrl = staticMapImageUrl;
       });
     } catch (error) {
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          actions: [
-            FlatButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Ok'),
-            )
-          ],
-          title: Text('Something go Wrong!'),
-          content: Text(error),
-        ),
-      );
+      await _showError(error: error);
     }
   }
 
@@ -258,9 +231,7 @@ class _StateLocationInput extends State<LocationInput> {
   /// and [_longitude])
   /// if user did not select location yet, setiing ud default init location
   Future<void> _selectOnMap() async {
-    setState(() {
-      _isLoading = true;
-    });
+    _setIsLoading(true);
     try {
       if (_isLatLngNull) {
         await _getCurrentUserLocation();
@@ -280,7 +251,7 @@ class _StateLocationInput extends State<LocationInput> {
                     latitude: _latitude,
                     longitude: _longitude,
                   ),
-            isSelecting: _isSelecting,
+            isSelecting: _isSelectingLocationOnMap,
             isMyLocationEnabled: true,
           ),
         ),
@@ -289,7 +260,7 @@ class _StateLocationInput extends State<LocationInput> {
         return;
       }
       // getting snapshot for location that user selected on GoogleMap
-      await _getLocationPreviewImage(
+      await _getLocationPreviewMapImageUrl(
           latitudeLocation: selectedLocation.latitude,
           longitudeLocation: selectedLocation.longitude,
           label: 'C');
@@ -301,44 +272,30 @@ class _StateLocationInput extends State<LocationInput> {
           longitude: _longitude,
         );
       });
-      print(
-          '$MAIN_TAG._selectOnMap() _latitude: $_latitude; _longitude:$_longitude');
     } catch (error) {
-      throw error;
+      await _showError(
+          title: 'An error occurred while loading the map:', error: error);
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      _setIsLoading(false);
     }
   }
+
+  Future<void> _showError({
+    String title = 'Something go Wrong!',
+    String error,
+  }) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Ok'),
+          )
+        ],
+        title: Text(title),
+        content: Text(error),
+      ),
+    );
+  }
 }
-
-// class PreviewImage extends StatefulWidget {
-//   final String previewImageUrl;
-
-//   PreviewImage(this.previewImageUrl);
-
-//   @override
-//   _PreviewImageState createState() => _PreviewImageState();
-// }
-
-// class _PreviewImageState extends State<PreviewImage> {
-//   bool _init = false;
-//   Image _image;
-//   @override
-//   Widget build(BuildContext context) {
-//     print('## PreviewImage.build() ENTRANCE _init:$_init ; _image: $_image');
-//     if (!_init) {
-//       _image = Image.network(widget.previewImageUrl);
-//       setState(() {
-//         _init = true;
-//       });
-//     print('## PreviewImage.build() if(!_init). _init:$_init ; _image: $_image');
-//     }
-//     if (_image == null) {
-//     print('## PreviewImage.build() if(_image == null). _init:$_init ; _image: $_image');
-//       return CircularProgressIndicator();
-//     }
-//     return _image;
-//   }
-// }

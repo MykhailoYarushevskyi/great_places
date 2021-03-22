@@ -89,11 +89,23 @@ class PlaceDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          FlatButton.icon(
+          TextButton.icon(
             icon: Icon(Icons.map),
             label: Text('View on the map'),
-            color: Theme.of(context).buttonColor,
-            minWidth: double.infinity,
+            style: ButtonStyle(
+              minimumSize:
+                  MaterialStateProperty.all<Size>(Size.fromHeight(40.00)),
+              foregroundColor: MaterialStateProperty.all<Color>(
+                  Theme.of(context).primaryColor),
+              backgroundColor:
+                  MaterialStateProperty.resolveWith<Color>((states) {
+                if (states.contains(MaterialState.pressed)) {
+                  return Theme.of(context).splashColor;
+                } else {
+                  return Theme.of(context).buttonColor;
+                }
+              }),
+            ),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(

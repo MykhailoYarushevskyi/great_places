@@ -19,7 +19,7 @@ class LocationHelper {
 
   ///This method uses [latitude] and [longitude] as the center
   ///of our place and returns a URL where contain a map of our place
-  static Future<String> generateLocationPreviewImage({
+  static Future<String> generateLocationPreviewMapImageUrl({
     @required double latitude,
     @required double longitude,
     String label = 'A',
@@ -29,6 +29,7 @@ class LocationHelper {
       final _googleMapApiKey = await getMapApiKey;
       return 'https://maps.googleapis.com/maps/api/staticmap?center=&$latitude,$longitude&zoom=16&size=600x300&maptype=roadmap&markers=color:red%7Clabel:$label%7C$latitude,$longitude&key=$_googleMapApiKey';
     } catch (error) {
+      log('$MAIN_TAG.generateLocationPreviewImage ERROR: $error');
       throw error;
     }
   }
@@ -65,6 +66,7 @@ class LocationHelper {
       throw responseMap['status'];
     } catch (error) {
       throw error;
+    } finally {
     }
   }
 }

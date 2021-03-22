@@ -1,6 +1,10 @@
-# great_places
+# memorable_places
 
-A new Flutter project.
+Obtaining a place image from the device's camera, save it to a file system, getting user coordinates, display a static map image, that got using Google Maps API Key, provide a dynamic map that allows users to select a place on the map, converting coordinates into address, storing all information about that place in a database. Showing all places in a list and in detail
+
+## Attention!
+If this project is in a public repository, then
+there is no single file in the project that contains GoogleMaps API KEY for Android, and GoogleMaps API KEY for iOS in the corresponding file damaged.
 
 ## Getting Started
 

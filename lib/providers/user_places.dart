@@ -25,7 +25,7 @@ class UserPlaces with ChangeNotifier {
   static const String MAIN_TAG = '## UserPlaces';
   List<Place> _items = [];
   String namePlacesDbTable = 'user_places';
-  
+
   List<Place> get items {
     return [..._items];
   }
@@ -66,13 +66,9 @@ class UserPlaces with ChangeNotifier {
   Future<void> updateFavorite(String id) async {
     log('$MAIN_TAG.changeFavorite(id) ENTRANCE');
     int index = items.indexWhere((item) => item.id == id);
-    print(
-        '$MAIN_TAG.changeFavorite(id); before change items[index].isFavorite: ${items[index].isFavorite}');
     Place place = items[index];
     place.isFavorite = !place.isFavorite;
     items[index] = place;
-    print(
-        '$MAIN_TAG.changeFavorite(id); after change items[index].isFavorite: ${items[index].isFavorite}');
     notifyListeners();
     Map<String, Object> data = {
       'is_favorite': place.isFavorite.toString(),
@@ -82,8 +78,10 @@ class UserPlaces with ChangeNotifier {
     print('$MAIN_TAG.changeFavorite(id); count: $count');
   }
 
+  /// method provides loading places record from database [DBHelper],
+  /// filtering [filterBy] and ordering [listOrder] list of places
   Future<void> fetchAndSetPlaces({
-    SequencePlacesList listOrder = SequencePlacesList.NONE,
+    SequencePlacesList listSequence = SequencePlacesList.NONE,
     FilterPlacesListBy filterBy = FilterPlacesListBy.NONE,
     Object value, // it might be wheater String or PlaceLocation
   }) async {
@@ -94,33 +92,42 @@ class UserPlaces with ChangeNotifier {
         orderBy: "id",
         where: _setFilterForDBRequest(filterBy),
       );
-      _items = [];
-      if (fetchedData != null) {
-        fetchedData.forEach((dbPlaceRecord) {
-          _items.add(
-            Place(
-                id: dbPlaceRecord['id'],
-                image: File(dbPlaceRecord['image']),
-                title: dbPlaceRecord['title'],
-                location: PlaceLocation(
-                  latitude: dbPlaceRecord['latitude'],
-                  longitude: dbPlaceRecord['longitude'],
-                  address: dbPlaceRecord['address'],
-                ),
-                isFavorite: _stringToBool(dbPlaceRecord['is_favorite'])),
-          );
-        });
-        if (listOrder == SequencePlacesList.EARLIER_AHEAD) {
-          _items = _items.reversed.toList();
-        }
-        if (listOrder == SequencePlacesList.SHUFFLE) {
-          _items.shuffle(math.Random());
-        }
-        notifyListeners();
-      } else
-        throw 'No data loaded from the database';
+      _setPlaces(fetchedData, listSequence);
     } catch (error) {
       throw error;
+    }
+  }
+
+  void _setPlaces(
+      List<Map<String, dynamic>> fetchedData, SequencePlacesList listSequence) {
+    _items = [];
+    if (fetchedData != null) {
+      fetchedData.forEach((dbPlaceRecord) {
+        _items.add(
+          Place(
+              id: dbPlaceRecord['id'],
+              image: File(dbPlaceRecord['image']),
+              title: dbPlaceRecord['title'],
+              location: PlaceLocation(
+                latitude: dbPlaceRecord['latitude'],
+                longitude: dbPlaceRecord['longitude'],
+                address: dbPlaceRecord['address'],
+              ),
+              isFavorite: _stringToBool(dbPlaceRecord['is_favorite'])),
+        );
+      });
+      _sortPlaceList(listSequence);
+      notifyListeners();
+    } else
+      throw 'No data loaded from the database';
+  }
+
+  void _sortPlaceList(SequencePlacesList listSequence) {
+    if (listSequence == SequencePlacesList.EARLIER_AHEAD) {
+      _items = _items.reversed.toList();
+    }
+    if (listSequence == SequencePlacesList.SHUFFLE) {
+      _items.shuffle(math.Random());
     }
   }
 
@@ -130,9 +137,8 @@ class UserPlaces with ChangeNotifier {
     }
     return false;
   }
-}
 
-String _setFilterForDBRequest(
+  String _setFilterForDBRequest(
     FilterPlacesListBy filter,
   ) {
     switch (filter) {
@@ -150,4 +156,4 @@ String _setFilterForDBRequest(
         }
     }
   }
-
+}

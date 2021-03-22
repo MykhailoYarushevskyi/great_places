@@ -7,6 +7,8 @@ import '../helpers/image_helper.dart';
 import 'package:path_provider/path_provider.dart' as syspaths;
 import 'package:path/path.dart' as path;
 
+/// Provides picking an image from the [source] (the camera or the gallery) and save it
+/// in the [appDir] directory
 class ImageInput extends StatefulWidget {
   final Function onSelectImage;
   ImageInput(this.onSelectImage);
@@ -51,21 +53,23 @@ class _ImageInputState extends State<ImageInput> {
           child: Column(
             children: [
               SizedBox(height: 10),
-              FlatButton.icon(
+              TextButton.icon(
                 icon: Icon(Icons.camera),
                 label: Text(
                   'Take Picture from Camera',
                   overflow: TextOverflow.clip,
                   maxLines: 2,
+                  style: TextStyle(color: Theme.of(context).primaryColor),
                 ),
-                textColor: Theme.of(context).primaryColor,
                 onPressed: () => _pickImage(source: 'camera'), //from Camera
               ),
               SizedBox(height: 10),
-              FlatButton.icon(
+              TextButton.icon(
                 icon: Icon(Icons.collections),
-                label: Text('Take Picture from Gallery'),
-                textColor: Theme.of(context).primaryColor,
+                label: Text(
+                  'Take Picture from Gallery',
+                  style: TextStyle(color: Theme.of(context).primaryColor),
+                ),
                 onPressed: () => _pickImage(source: 'gallery'), // from Gallery
               ),
             ],
@@ -75,16 +79,14 @@ class _ImageInputState extends State<ImageInput> {
     ]);
   }
 
-  /// The method pick an image from the [source] and save it 
+  /// The method pick an image from the [source] and save it
   /// in the [appDir] directory
   Future<void> _pickImage({String source = 'camera'}) async {
     log('$MAIN_TAG _pickImage()');
     _storedImage = await ImageHelper.selectImage(imgSource: source);
-    // print('## ImageInput _pickImage() _storedImage = ${_storedImage.path}');
     final appDir = await syspaths.getApplicationDocumentsDirectory();
     final fileName = path.basename(_storedImage.path);
     _savedImage = await _storedImage.copy('${appDir.path}/$fileName');
-    // print('## ImageInput _pickImage() _savedImage = ${_savedImage.path}');
     //callback that set in the calling side
     widget.onSelectImage(_savedImage);
     setState(() {

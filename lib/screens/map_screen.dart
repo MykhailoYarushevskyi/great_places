@@ -29,13 +29,6 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   LatLng _pickedLocation;
 
-  /// save selected location
-  void _selectLocation(LatLng location) {
-    setState(() {
-      _pickedLocation = location;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,5 +68,12 @@ class _MapScreenState extends State<MapScreen> {
         myLocationEnabled: widget.isMyLocationEnabled,
       ),
     );
+  }
+
+  /// save selected location
+  void _selectLocation(LatLng location) {
+    setState(() {
+      _pickedLocation = location;
+    });
   }
 }

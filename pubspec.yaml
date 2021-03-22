@@ -1,4 +1,4 @@
-name: great_places
+name: memorable_places
 description: Using native device features (Camera, Maps, Location, etc)
 
 # The following line prevents the package from being accidentally published to
